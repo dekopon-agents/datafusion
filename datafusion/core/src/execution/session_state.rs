@@ -94,7 +94,22 @@ use sqlparser::{
     dialect::dialect_from_str,
 };
 use url::Url;
+#[cfg(not(all(target_family = "wasm", feature = "dekopon-wasm")))]
 use uuid::Uuid;
+
+#[cfg(all(target_family = "wasm", feature = "dekopon-wasm"))]
+fn default_session_id() -> String {
+    let mut bytes = [0u8; 16];
+    getrandom::fill(&mut bytes).expect("host entropy unavailable for session ID");
+    uuid::Builder::from_random_bytes(bytes)
+        .into_uuid()
+        .to_string()
+}
+
+#[cfg(not(all(target_family = "wasm", feature = "dekopon-wasm")))]
+fn default_session_id() -> String {
+    Uuid::new_v4().to_string()
+}
 
 /// `SessionState` contains all the necessary state to plan and execute queries,
 /// such as configuration, functions, and runtime environment. Please see the
@@ -1603,7 +1618,7 @@ impl SessionStateBuilder {
         let runtime_env = runtime_env.unwrap_or_else(|| Arc::new(RuntimeEnv::default()));
 
         let mut state = SessionState {
-            session_id: session_id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+            session_id: session_id.unwrap_or_else(default_session_id),
             analyzer: analyzer.unwrap_or_default(),
             expr_planners: expr_planners.unwrap_or_default(),
             #[cfg(feature = "sql")]
@@ -2397,6 +2412,35 @@ mod tests {
     use datafusion_sql::planner::{PlannerContext, SqlToRel};
     use std::collections::HashMap;
     use std::sync::Arc;
+
+    #[test]
+    fn test_session_id_default_and_caller_supplied() {
+        let generated = SessionStateBuilder::new().build();
+        let id = uuid::Uuid::parse_str(generated.session_id()).unwrap();
+        assert_eq!(id.get_version_num(), 4);
+        assert_eq!(id.get_variant(), uuid::Variant::RFC4122);
+
+        let supplied = SessionStateBuilder::new()
+            .with_session_id("caller-session".to_string())
+            .build();
+        assert_eq!(supplied.session_id(), "caller-session");
+    }
+
+    #[cfg(all(feature = "sql", feature = "string_expressions"))]
+    #[tokio::test]
+    async fn test_uuid_sql_function_remains_registered() -> Result<()> {
+        let context = crate::prelude::SessionContext::new();
+        let rows = context.sql("SELECT uuid() AS id").await?.collect().await?;
+        let id = rows[0]
+            .column(0)
+            .as_any()
+            .downcast_ref::<StringArray>()
+            .unwrap();
+        let uuid = uuid::Uuid::parse_str(id.value(0)).unwrap();
+        assert_eq!(uuid.get_version_num(), 4);
+        assert_eq!(uuid.get_variant(), uuid::Variant::RFC4122);
+        Ok(())
+    }
 
     #[test]
     #[cfg(feature = "sql")]

@@ -763,6 +763,20 @@
 //! [`Array`]: arrow::array::Array
 #![doc = include_str!("optimizer_rule_reference.md")]
 
+#[cfg(all(
+    target_family = "wasm",
+    feature = "dekopon-wasm",
+    feature = "browser-uuid"
+))]
+compile_error!(
+    "dekopon-wasm requires --no-default-features; browser-uuid enables JavaScript entropy"
+);
+#[cfg(all(
+    target_family = "wasm",
+    not(any(feature = "dekopon-wasm", feature = "browser-uuid"))
+))]
+compile_error!("choose browser-uuid or dekopon-wasm for WebAssembly session IDs");
+
 extern crate core;
 #[cfg(feature = "sql")]
 extern crate sqlparser;

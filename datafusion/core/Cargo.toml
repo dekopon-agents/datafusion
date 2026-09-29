@@ -39,6 +39,9 @@ all-features = true
 workspace = true
 
 [features]
+# Opt-in host-backed no-browser guest; the embedding crate supplies entropy backends.
+dekopon-wasm = ["datafusion-common/dekopon-monotonic", "dep:getrandom"]
+browser-uuid = ["uuid/v4", "uuid/js"]
 nested_expressions = ["datafusion-functions-nested"]
 # This feature is deprecated. Use the `nested_expressions` feature instead.
 array_expressions = ["nested_expressions"]
@@ -56,6 +59,7 @@ compression = [
 crypto_expressions = ["datafusion-functions/crypto_expressions"]
 datetime_expressions = ["datafusion-functions/datetime_expressions"]
 default = [
+    "browser-uuid",
     "nested_expressions",
     "crypto_expressions",
     "datetime_expressions",
@@ -143,6 +147,7 @@ datafusion-physical-plan = { workspace = true }
 datafusion-session = { workspace = true }
 datafusion-sql = { workspace = true, optional = true }
 flate2 = { workspace = true, optional = true }
+getrandom = { version = "0.3", optional = true }
 futures = { workspace = true }
 indexmap = { workspace = true }
 itertools = { workspace = true }
@@ -156,7 +161,10 @@ sqlparser = { workspace = true, optional = true }
 tempfile = { workspace = true }
 tokio = { workspace = true }
 url = { workspace = true }
-uuid = { workspace = true, features = ["v4", "js"] }
+uuid = { workspace = true }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+uuid = { workspace = true, features = ["v4"] }
 zstd = { workspace = true, optional = true }
 
 [dev-dependencies]

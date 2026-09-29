@@ -257,7 +257,7 @@ impl Timestamp {
 
     /// Sets the timestamps value to the current time
     pub fn record(&self) {
-        self.set(Utc::now())
+        self.set(datafusion_common::instant::utc_now())
     }
 
     /// Sets the timestamps value to a specified time

@@ -41,6 +41,8 @@ workspace = true
 name = "datafusion_common"
 
 [features]
+# Opt-in invocation host monotonic and UTC wall clocks. Native and browser clocks are unchanged.
+dekopon-monotonic = []
 backtrace = []
 parquet_encryption = [
     "parquet",
@@ -83,7 +85,7 @@ parquet = { workspace = true, optional = true, default-features = true }
 recursive = { workspace = true, optional = true }
 sqlparser = { workspace = true, optional = true }
 tokio = { workspace = true }
-uuid = { workspace = true, features = ["v4"] }
+uuid = { workspace = true }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 web-time = "1.1.0"

@@ -185,7 +185,7 @@ impl OptimizerContext {
     /// Create a optimizer config with provided [ConfigOptions].
     pub fn new_with_config_options(options: Arc<ConfigOptions>) -> Self {
         Self {
-            query_execution_start_time: Some(Utc::now()),
+            query_execution_start_time: Some(datafusion_common::instant::utc_now()),
             alias_generator: Arc::new(AliasGenerator::new()),
             options,
         }

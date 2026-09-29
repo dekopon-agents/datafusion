@@ -103,7 +103,7 @@ impl SimplifyContext {
     )]
     /// Set the query execution start to the current time
     pub fn with_current_time(mut self) -> Self {
-        self.query_execution_start_time = Some(Utc::now());
+        self.query_execution_start_time = Some(datafusion_common::instant::utc_now());
         self
     }
 
@@ -163,7 +163,7 @@ impl SimplifyContextBuilder {
 
     /// Set the query execution start to the current time.
     pub fn with_current_time(mut self) -> Self {
-        self.query_execution_start_time = Some(Utc::now());
+        self.query_execution_start_time = Some(datafusion_common::instant::utc_now());
         self
     }
 
