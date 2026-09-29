@@ -367,7 +367,7 @@ impl SessionContext {
     pub fn new_with_state(state: SessionState) -> Self {
         Self {
             session_id: state.session_id().to_string(),
-            session_start_time: Utc::now(),
+            session_start_time: datafusion_common::instant::utc_now(),
             state: Arc::new(RwLock::new(state)),
         }
     }
