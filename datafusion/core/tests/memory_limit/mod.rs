@@ -713,42 +713,6 @@ async fn test_disk_spill_limit_not_reached() -> Result<()> {
     Ok(())
 }
 
-/// External query should succeed using zstd as spill compression codec and
-/// and all temporary spill files are properly cleaned up after execution.
-/// Note: This test does not inspect file contents (e.g. magic number),
-/// as spill files are automatically deleted on drop.
-#[tokio::test]
-async fn test_spill_file_compressed_with_zstd() -> Result<()> {
-    let disk_spill_limit = 1024 * 1024; // 1MB
-    let spill_compression = SpillCompression::Zstd;
-    let ctx = setup_context(disk_spill_limit, 128 * 1024, spill_compression)?; // 1MB disk limit, 128KB memory limit, zstd
-
-    let df = ctx
-        .sql("select * from generate_series(1, 100000) as t1(v1) order by v1 desc")
-        .await
-        .unwrap();
-    let plan = df.create_physical_plan().await.unwrap();
-
-    let task_ctx = ctx.task_ctx();
-    let _ = collect_batches(Arc::clone(&plan), task_ctx)
-        .await
-        .expect("Query execution failed");
-
-    let spill_count = plan_spill_count(plan.as_ref());
-    let spilled_bytes = plan_spilled_bytes(plan.as_ref());
-
-    println!("spill count {spill_count}");
-    assert!(spill_count > 0);
-    assert!((spilled_bytes as u64) < disk_spill_limit);
-
-    // Verify that all temporary files have been properly cleaned up by checking
-    // that the total disk usage tracked by the disk manager is zero
-    let current_disk_usage = ctx.runtime_env().disk_manager.used_disk_space();
-    assert_eq!(current_disk_usage, 0);
-
-    Ok(())
-}
-
 /// External query should succeed using lz4_frame as spill compression codec and
 /// and all temporary spill files are properly cleaned up after execution.
 /// Note: This test does not inspect file contents (e.g. magic number),

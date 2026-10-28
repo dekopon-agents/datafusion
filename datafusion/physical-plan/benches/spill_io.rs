@@ -433,11 +433,7 @@ fn bench_spill_compression(c: &mut Criterion) {
     let env = Arc::new(RuntimeEnv::default());
     let mut group = c.benchmark_group("spill_compression");
     let rt = Runtime::new().unwrap();
-    let compressions = vec![
-        SpillCompression::Uncompressed,
-        SpillCompression::Zstd,
-        SpillCompression::Lz4Frame,
-    ];
+    let compressions = vec![SpillCompression::Uncompressed, SpillCompression::Lz4Frame];
 
     // Modify these values to change data volume. Note that each batch contains `num_rows` rows.
     let num_batches = 50;

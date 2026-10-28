@@ -105,11 +105,11 @@ arrow-data = { version = "59.2.0", default-features = false }
 arrow-flight = { version = "59.2.0", features = [
     "flight-sql-experimental",
 ] }
-# Both codecs are required here to make sure that code paths like
-# file-spilling have access to all compression codecs.
+# lz4 is required here to make sure that code paths like file-spilling have
+# access to the compression codec. zstd is deliberately off: arrow-ipc 59.x
+# pins zstd 0.13, which carries unpatched advisories.
 arrow-ipc = { version = "59.2.0", default-features = false, features = [
     "lz4",
-    "zstd",
 ] }
 arrow-ord = { version = "59.2.0", default-features = false }
 arrow-schema = { version = "59.2.0", default-features = false }

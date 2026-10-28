@@ -540,7 +540,6 @@ impl Display for Dialect {
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum SpillCompression {
-    Zstd,
     Lz4Frame,
     #[default]
     Uncompressed,
@@ -551,11 +550,10 @@ impl FromStr for SpillCompression {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_ascii_lowercase().as_str() {
-            "zstd" => Ok(Self::Zstd),
             "lz4_frame" => Ok(Self::Lz4Frame),
             "uncompressed" | "" => Ok(Self::Uncompressed),
             other => Err(DataFusionError::Configuration(format!(
-                "Invalid Spill file compression type: {other}. Expected one of: zstd, lz4_frame, uncompressed"
+                "Invalid Spill file compression type: {other}. Expected one of: lz4_frame, uncompressed"
             ))),
         }
     }
@@ -575,7 +573,6 @@ impl ConfigField for SpillCompression {
 impl Display for SpillCompression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let str = match self {
-            Self::Zstd => "zstd",
             Self::Lz4Frame => "lz4_frame",
             Self::Uncompressed => "uncompressed",
         };
@@ -798,7 +795,6 @@ impl Display for MapKeyDedupPolicy {
 impl From<SpillCompression> for Option<CompressionType> {
     fn from(c: SpillCompression) -> Self {
         match c {
-            SpillCompression::Zstd => Some(CompressionType::ZSTD),
             SpillCompression::Lz4Frame => Some(CompressionType::LZ4_FRAME),
             SpillCompression::Uncompressed => None,
         }
@@ -893,10 +889,9 @@ config_namespace! {
         ///
         /// Since datafusion writes spill files using the Arrow IPC Stream format,
         /// only codecs supported by the Arrow IPC Stream Writer are allowed.
-        /// Valid values are: uncompressed, lz4_frame, zstd.
+        /// Valid values are: uncompressed, lz4_frame.
         /// Note: lz4_frame offers faster (de)compression, but typically results in
-        /// larger spill files. In contrast, zstd achieves
-        /// higher compression ratios at the cost of slower (de)compression speed.
+        /// larger spill files.
         pub spill_compression: SpillCompression, default = SpillCompression::Uncompressed
 
         /// Specifies the reserved memory for each spillable sort operation to

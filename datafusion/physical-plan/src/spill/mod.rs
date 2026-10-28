@@ -201,7 +201,7 @@ impl RecordBatchStream for SpillReaderStream {
 ///
 /// Arrow's `StreamWriter` does not return the number of bytes written during its
 /// `write()` calls. To accurately track the `spilled_bytes` metrics (especially
-/// when LZ4/ZSTD compression is applied), we must intercept the `std::io::Write`
+/// when LZ4 compression is applied), we must intercept the `std::io::Write`
 /// trait boundary to count the final serialized payload size.
 pub(crate) struct TrackingSpillWriter {
     inner: Box<dyn SpillWriter>,
@@ -253,11 +253,11 @@ impl IPCStreamWriter {
     ///
     /// # Codec contract
     ///
-    /// `arrow-ipc` must be compiled with the `lz4` and `zstd` features
+    /// `arrow-ipc` must be compiled with the `lz4` feature
     /// (declared explicitly in `datafusion-physical-plan/Cargo.toml`). If
-    /// those features are absent, `try_with_compression` will return an
-    /// error at runtime for [`SpillCompression::Lz4Frame`] and
-    /// [`SpillCompression::Zstd`] variants. The Cargo dependency keeps this
+    /// that feature is absent, `try_with_compression` will return an
+    /// error at runtime for the [`SpillCompression::Lz4Frame`]
+    /// variant. The Cargo dependency keeps this
     /// contract local and build-visible during Cargo feature resolution,
     /// rather than relying solely on workspace-level feature unification;
     /// see #21917.
@@ -728,7 +728,6 @@ mod tests {
         let env = Arc::new(RuntimeEnv::default());
         let uncompressed_metrics = SpillMetrics::new(&ExecutionPlanMetricsSet::new(), 0);
         let lz4_metrics = SpillMetrics::new(&ExecutionPlanMetricsSet::new(), 0);
-        let zstd_metrics = SpillMetrics::new(&ExecutionPlanMetricsSet::new(), 0);
         let uncompressed_spill_manager = SpillManager::new(
             Arc::clone(&env),
             uncompressed_metrics,
@@ -737,41 +736,24 @@ mod tests {
         let lz4_spill_manager =
             SpillManager::new(Arc::clone(&env), lz4_metrics, Arc::clone(&schema))
                 .with_compression_type(SpillCompression::Lz4Frame);
-        let zstd_spill_manager =
-            SpillManager::new(env, zstd_metrics, Arc::clone(&schema))
-                .with_compression_type(SpillCompression::Zstd);
         let uncompressed_spill_file = uncompressed_spill_manager
             .spill_record_batch_and_finish(&batches, "Test")?
             .unwrap();
         let lz4_spill_file = lz4_spill_manager
             .spill_record_batch_and_finish(&batches, "Lz4_Test")?
             .unwrap();
-        let zstd_spill_file = zstd_spill_manager
-            .spill_record_batch_and_finish(&batches, "ZSTD_Test")?
-            .unwrap();
         assert!(uncompressed_spill_file.path().unwrap().exists());
         assert!(lz4_spill_file.path().unwrap().exists());
-        assert!(zstd_spill_file.path().unwrap().exists());
 
         let lz4_spill_size = std::fs::metadata(lz4_spill_file.path().unwrap())?.len();
-        let zstd_spill_size = std::fs::metadata(zstd_spill_file.path().unwrap())?.len();
         let uncompressed_spill_size =
             std::fs::metadata(uncompressed_spill_file.path().unwrap())?.len();
 
         assert!(uncompressed_spill_size > lz4_spill_size);
-        assert!(uncompressed_spill_size > zstd_spill_size);
 
         validate(
             &lz4_spill_manager,
             lz4_spill_file,
-            num_rows,
-            Arc::clone(&schema),
-            batch_count,
-        )
-        .await?;
-        validate(
-            &zstd_spill_manager,
-            zstd_spill_file,
             num_rows,
             Arc::clone(&schema),
             batch_count,
